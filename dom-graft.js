@@ -1,43 +1,80 @@
 'use strict'
 
-export default function graft(branches, root = null, position) {
-   const fragment = new DocumentFragment()
+export default function graft(branches, root = null, position = 'beforeend') {
+
+   if (!['beforeend', 'afterend', 'beforebegin', 'afterbegin'].includes(position))
+   {
+      throw TypeError("The 'position' argument of graft must be 1 of: 'beforeend', 'afterend', 'beforebegin' or 'afterbegin'")
+   }
+
+   if (branches?.constructor.name === 'Array')
+   {
+      const fragment = new DocumentFragment()
+
+      for (const branch of branches)
+      {
+         fragment.append(createBranch(branch))
+      }
+
+      if (root)
+      {
+         switch (position)
+         {
+            case 'beforeend':
+               root.append(fragment)
+               break
+            case 'afterend':
+               root.after(fragment)
+               break
+            case 'beforebegin':
+               root.before(fragment)
+               break
+            case 'afterbegin':
+               root.prepend(fragment)
+               break
+         }
+      }
+
+      return fragment
+   }
+
+   return createBranch(branches, root, position)
 }
 
-export default function createComponent(tree, root = null, position = 'beforeend') {
+export function createBranch(branch, root = null, position = 'beforeend') {
 
-   if (tree?.constructor.name !== 'Object')
+   if (branch?.constructor.name !== 'Object')
    {
-      console.error(tree)
-      throw TypeError(`The first argument of createComponent must be an Object instead of the above ${tree?.constructor.name ?? tree}.`)
+      console.error(branch)
+      throw TypeError(`The first argument of createBranch must be an Object instead of the above ${branch?.constructor.name ?? branch}.`)
    }
 
    if (!root instanceof HTMLElement && root !== null)
    {
       console.error(root)
-      throw TypeError(`The second argument of createComponent must be an HTMLElement or null instead of the above ${root?.constructor.name ?? root}`)
+      throw TypeError(`The second argument of createBranch must be an HTMLElement or null instead of the above ${root?.constructor.name ?? root}`)
    }
 
-   if (typeof tree.tag !== 'string' || tree.tag === '')
+   if (typeof branch.tag !== 'string' || branch.tag === '')
    {
-      throw TypeError('The first argument of createComponent must have a "tag" property whose value is a non-empty string')
+      throw TypeError('The first argument of createBranch must have a "tag" property whose value is a non-empty string')
    }
 
-   const element = document.createElement(tree.tag)
+   const element = document.createElement(branch.tag)
 
-   for (const key in tree)
+   for (const key in branch)
    {
       if (key === 'tag') continue
 
       if (key === 'children')
       {
-         if (tree[key]?.constructor.name !== 'Array')
+         if (branch[key]?.constructor.name !== 'Array')
          {
-            console.error(tree[key])
-            throw TypeError(`A 'children' property must be an Array instead of the above ${tree[key]?.constructor.name ?? tree[key]}`)
+            console.error(branch[key])
+            throw TypeError(`A 'children' property must be an Array instead of the above ${branch[key]?.constructor.name ?? branch[key]}`)
          }
 
-         for (const child of tree[key])
+         for (const child of branch[key])
          {
             switch (child?.constructor.name)
             {
@@ -45,7 +82,7 @@ export default function createComponent(tree, root = null, position = 'beforeend
                   element.appendChild(document.createTextNode(child))
                   break
                case 'Object':
-                  createComponent(child, element)
+                  createBranch(child, element)
                   break
                default:
                   console.error(child)
@@ -55,7 +92,7 @@ export default function createComponent(tree, root = null, position = 'beforeend
       }
       else
       {
-         element.setAttribute(key, tree[key])
+         element.setAttribute(key, branch[key])
       }
    }
 
