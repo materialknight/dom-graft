@@ -2,18 +2,37 @@
 
 export default function graft(branches, root = null, position = 'beforeend') {
 
+   if (!['beforeend', 'afterend', 'beforebegin', 'afterbegin'].includes(position))
+   {
+      throw TypeError("The 'position' argument of graft must be 1 of: 'beforeend', 'afterend', 'beforebegin' or 'afterbegin'")
+   }
+
    if (branches?.constructor.name === 'Array')
    {
       const fragment = new DocumentFragment()
 
       for (const branch of branches)
       {
-         createBranch(branch, fragment)
+         fragment.append(createBranch(branch))
       }
 
       if (root)
       {
-         root.insertAdjacentElement(position, fragment)
+         switch (position)
+         {
+            case 'beforeend':
+               root.append(fragment)
+               break
+            case 'afterend':
+               root.after(fragment)
+               break
+            case 'beforebegin':
+               root.before(fragment)
+               break
+            case 'afterbegin':
+               root.prepend(fragment)
+               break
+         }
       }
 
       return fragment
